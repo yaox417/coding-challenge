@@ -16,7 +16,6 @@ from utils.daily_helpers import create_sip_room
 # Load environment variables
 load_dotenv()
 
-
 # Initialize FastAPI app with aiohttp session
 @asynccontextmanager
 async def lifespan(app: FastAPI):

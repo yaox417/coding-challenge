@@ -4,3 +4,5 @@ uvicorn
 python-dotenv
 twilio
 aiohttp
+googlemaps
+boto3

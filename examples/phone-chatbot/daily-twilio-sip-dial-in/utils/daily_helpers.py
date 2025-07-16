@@ -54,7 +54,7 @@ async def create_sip_room(
     # Create room properties with SIP enabled
     properties = DailyRoomProperties(
         sip=sip_params,
-        enable_dialout=True,  # Needed for outbound calls if you expand the bot
+        # enable_dialout=True,  # Needed for outbound calls if you expand the bot
         enable_chat=False,  # No need for chat in a voice bot
         start_video_off=True,  # Voice only
     )
