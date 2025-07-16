@@ -20,7 +20,7 @@ class EmailSender:
         # AWS credentials should be set via environment variables or AWS credentials file
         # AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION
         self.aws_region = os.getenv("AWS_DEFAULT_REGION", "us-east-1")  # SES is available in limited regions
-        self.sender_email = "yao.dominican@gmail.com"  # Must be verified in SES
+        self.sender_email = "jennyxiaoyao@gmail.com"  # Must be verified in SES
         self.sender_name = "Dr. Smith's Medical Office"
         
         # Initialize SES client
@@ -145,8 +145,8 @@ This is an automated message. Please do not reply to this email.
             
             # Try to send email via Amazon SES
             if not self.ses_client:
-                logger.error("❌ SES client not initialized - check AWS credentials")
-                logger.info("📧 Email sending failed, but appointment is still scheduled")
+                logger.error("SES client not initialized - check AWS credentials")
+                logger.info(" Email sending failed, but appointment is still scheduled")
                 logger.info("=====================================")
                 return False
             
@@ -174,8 +174,8 @@ This is an automated message. Please do not reply to this email.
                     Source=f'{self.sender_name} <{self.sender_email}>',
                 )
                 
-                logger.info(f"✅ Appointment confirmation email SENT successfully to jennyxiaoyao@gmail.com")
-                logger.info(f"📧 SES Message ID: {response['MessageId']}")
+                logger.info(f"Appointment confirmation email SENT successfully to jennyxiaoyao@gmail.com")
+                logger.info(f"SES Message ID: {response['MessageId']}")
                 logger.info("=====================================")
                 return True
                 
@@ -184,23 +184,23 @@ This is an automated message. Please do not reply to this email.
                 error_message = ses_error.response['Error']['Message']
                 
                 if error_code == 'MessageRejected':
-                    logger.error(f"❌ SES Error: Email rejected - {error_message}")
-                    logger.info("📧 Check if sender email is verified in SES")
+                    logger.error(f"SES Error: Email rejected - {error_message}")
+                    logger.info("Check if sender email is verified in SES")
                 elif error_code == 'InvalidParameterValue':
-                    logger.error(f"❌ SES Error: Invalid parameter - {error_message}")
+                    logger.error(f"SES Error: Invalid parameter - {error_message}")
                 elif error_code == 'ConfigurationSetDoesNotExist':
-                    logger.error(f"❌ SES Error: Configuration issue - {error_message}")
+                    logger.error(f"SES Error: Configuration issue - {error_message}")
                 else:
-                    logger.error(f"❌ SES Error ({error_code}): {error_message}")
+                    logger.error(f"SES Error ({error_code}): {error_message}")
                 
-                logger.info("📧 Email sending failed, but appointment is still scheduled")
+                logger.info("Email sending failed, but appointment is still scheduled")
                 logger.info("=====================================")
                 return False
                 
             except Exception as ses_error:
-                logger.error(f"❌ SES Error: {ses_error}")
-                logger.info("📧 Please check AWS credentials and SES configuration")
-                logger.info("📧 Email sending failed, but appointment is still scheduled")
+                logger.error(f"SES Error: {ses_error}")
+                logger.info("Please check AWS credentials and SES configuration")
+                logger.info("Email sending failed, but appointment is still scheduled")
                 logger.info("=====================================")
                 return False
             

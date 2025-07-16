@@ -22,6 +22,7 @@ from pipecat_flows import FlowArgs, FlowManager, FlowResult, NodeConfig
 
 from utils.address_validator import AddressValidator
 from utils.email_sender import EmailSender
+from utils.date_converter import DateConverter
 
 # Setup logging
 load_dotenv()
@@ -34,9 +35,10 @@ twilio_client = Client(
     os.getenv("TWILIO_AUTH_TOKEN")
 )
 
-# Initialize address validator and email sender
+# Initialize address validator, email sender, and date converter
 address_validator = AddressValidator()
 email_sender = EmailSender()
+date_converter = DateConverter()
 
 class NameCollectionResult(FlowResult):
     name: str
@@ -207,7 +209,7 @@ async def collect_contact_info(
 async def schedule_appointment(
     args: FlowArgs, flow_manager: FlowManager
 ) -> tuple[AppointmentSchedulingResult, NodeConfig]:
-    """Process appointment scheduling."""
+    """Process appointment scheduling with date conversion."""
     appointment_choice = args.get("appointment_choice", "").lower()
     custom_time = args.get("custom_time", "")
     
@@ -239,8 +241,26 @@ async def schedule_appointment(
         # Default to tomorrow if unclear
         selected_appointment = "tomorrow at 3pm"
     
-    flow_manager.state["selected_appointment"] = selected_appointment
-    flow_manager.state["custom_time"] = custom_time
+    # Convert the relative date to actual calendar date using the date converter
+    try:
+        converted_appointment = date_converter.convert_relative_date(selected_appointment)
+        logger.info(f"Converted appointment: '{selected_appointment}' → '{converted_appointment}'")
+        
+        # Store both the original relative date and the converted date
+        flow_manager.state["selected_appointment"] = selected_appointment
+        flow_manager.state["converted_appointment"] = converted_appointment
+        flow_manager.state["custom_time"] = custom_time
+        
+        # Use the converted date for email confirmation
+        appointment_for_email = converted_appointment
+        
+    except Exception as e:
+        logger.error(f"Error converting appointment date: {e}")
+        # Fallback to original appointment if conversion fails
+        flow_manager.state["selected_appointment"] = selected_appointment
+        flow_manager.state["converted_appointment"] = selected_appointment
+        flow_manager.state["custom_time"] = custom_time
+        appointment_for_email = selected_appointment
     
     # Send appointment confirmation email
     try:
@@ -253,7 +273,7 @@ async def schedule_appointment(
             'chief_complaint': flow_manager.state.get('chief_complaint', 'Not provided')
         }
         
-        email_sent = email_sender.send_appointment_confirmation(patient_data, selected_appointment)
+        email_sent = email_sender.send_appointment_confirmation(patient_data, appointment_for_email)
         if email_sent:
             logger.info("Appointment confirmation email sent successfully")
         else:
@@ -288,14 +308,14 @@ def create_initial_node() -> NodeConfig:
                     "You are a friendly medical agent. Your responses will be "
                     "converted to audio, so avoid special characters. Always use "
                     "the available functions to progress the conversation naturally."
-                    "Introduce yourself as Dr. Smith's medical AI assistant. "
+                    "Introduce yourself as Dr. Smith's medical AI assistant, that's it. Do not ask for the patient's name yet"
                 ),
             }
         ],
         "task_messages": [
             {
                 "role": "system",
-                "content": "Start by asking how they are doing today, wait for them to respond, then ask for their name",
+                "content": "Do not introduce yourself twice. Start by asking how they are doing today, wait for them to respond, then ask for their name",
             }
         ],
         "functions": [
@@ -552,7 +572,8 @@ def create_appointment_scheduling_node() -> NodeConfig:
                     "tomorrow at 3pm, next Monday at 10am, or next Wednesday at 11am. "
                     "Ask which time works best for them. If they say nothing works, ask when they are available. "
                     "If they say anything works, offer tomorrow at 3pm. "
-                    "If they give multiple options, pick the first one mentioned."
+                    "If they give multiple options, pick the first one mentioned. "
+                    "Convert the selected time to a standardized format for scheduling but do not tell the patient about this process. "
                 ),
             }
         ],
@@ -594,7 +615,8 @@ def create_end_node() -> NodeConfig:
                 "role": "system",
                 "content": (
                     "Thank the customer for their time and end the conversation. "
-                    "Mention that an email has been sent to confirm their appointment."
+                    "Mention that an email has been sent to confirm their appointment. "
+                    "If available, mention the specific appointment date and time from the converted_appointment in the flow state."
                 ),
             }
         ],
